@@ -237,7 +237,7 @@ qint32 upgrade_tool::bb_burn_process()
         errDlg_file->showMessage(tr("Bin file is empty."));
         return -1;
     }
-
+    processBar_updata(ui->BBFW_BURN_PROBAR,0);
     ui->BBFW_BURN_DIR->setEnabled(false);
     ui->BBFW_BURN_TOOL->setEnabled(false);
     ui->BBFW_BURN_START->setEnabled(false);
@@ -328,12 +328,12 @@ qint32 upgrade_tool::sys_burn_process()
     ui->SYS_BURN_MBR_TOOL->setEnabled(false);
     ui->SYS_BURN_BL_TOOL->setEnabled(false);
     ui->SYS_BURN_BB_TOOL->setEnabled(false);
+    ui->SYS_BURN_START->setEnabled(false);
 
     upgrade_handler->mbrByteArray = sys_burn_get_data_from_sellect_file(ui->SYS_BURN_MBR_DIR->text());
     if(upgrade_handler->mbrByteArray.isEmpty())
     {
         qDebug("get mbr flash file failed.\n");
-
     }
     upgrade_handler->authcodeByteArray = sys_burn_get_data_from_sellect_file(ui->SYS_BURN_AC_DIR->text());
     if(upgrade_handler->authcodeByteArray.isEmpty())
@@ -351,12 +351,9 @@ qint32 upgrade_tool::sys_burn_process()
     if(upgrade_handler->bbByteArray.isEmpty())
     {
         qDebug("get bb flash file failed.\n");
-
     }
 
-
     upgrade_handler->doLoadFlashFile(HG_UpgradeFile::SecureEncryptionMode);
-
 
     ui->SYS_BURN_AC_DIR->setEnabled(true);
     ui->SYS_BURN_MBR_DIR->setEnabled(true);
@@ -366,6 +363,7 @@ qint32 upgrade_tool::sys_burn_process()
     ui->SYS_BURN_MBR_TOOL->setEnabled(true);
     ui->SYS_BURN_BL_TOOL->setEnabled(true);
     ui->SYS_BURN_BB_TOOL->setEnabled(true);
+    ui->SYS_BURN_START->setEnabled(true);
 
     errDlg_file->showMessage(tr("Flash File Burn Ok!\n\n"));
 
@@ -436,6 +434,7 @@ void upgrade_tool::on_COM_SET_OPEN_clicked()
         serialStatusFlag = true;  //flag means serial opened;
     }else{
         serial_close();
+        upgrade_handler->upgradeAux->m_thread.serialClose();
         ui->COM_SET_OPEN->setText("Open");
         serialStatusFlag = false;  //flag means serial opened;
     }

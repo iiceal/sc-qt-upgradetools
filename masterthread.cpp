@@ -70,7 +70,16 @@ MasterThread::~MasterThread()
  //   wait();
 
 }
-
+void MasterThread::serialClose()
+{
+    m_mutex.lock();
+    m_quit = true;
+    m_cond.wakeOne();
+//    terminate();
+//    quit();
+    m_mutex.unlock();
+    qDebug("ForceClose Done.\n");
+}
 //void MasterThread::transaction(QSerialPort *serialPort, int waitTimeout, char* data,qint32 len, qint32 mode)
 void MasterThread::transaction(const QString &portName, const qint32 bondRate,int waitTimeout, char* data,qint32 len, qint32 mode)
 {
@@ -93,13 +102,15 @@ void MasterThread::transaction(const QString &portName, const qint32 bondRate,in
     }
 }
 
-void MasterThread::recieve(const QString &portName, const qint32 bondRate,qint32 TimeOut)
+void MasterThread::recieve(const QString &portName, const qint32 bondRate,qint32 TimeOut,qint32 mode)
 {
     const QMutexLocker locker(&m_mutex);
     m_portBondRate = bondRate;
     m_request_data_len = 0;
     m_portName = portName;
     m_waitTimeout = TimeOut;
+
+    m_request_mode = mode;
 
     if (!isRunning()){
         m_quit = false;
@@ -151,29 +162,56 @@ void MasterThread::run()
             }
         }
 
-        serial.write(m_request_data,m_request_data_len);
-        if (serial.waitForBytesWritten(currentWaitTimeout)) {
-        qDebug("Serial transfer wrtie data done.len = %d,timeOut setting = %d.\n",m_request_data_len,currentWaitTimeout);
-            // read response
-            if (serial.waitForReadyRead(currentWaitTimeout)) {
+        if(m_request_data_len > 0)
+        {
+            serial.clear();
+            serial.write(m_request_data,m_request_data_len);
+            if (serial.waitForBytesWritten(currentWaitTimeout))
+            {
+                 qDebug("Serial transfer wrtie data done.len = %d,timeOut setting = %d.\n",m_request_data_len,currentWaitTimeout);
+                // read response
+                if (serial.waitForReadyRead(currentWaitTimeout))
+                {
+
+                    QByteArray responseData = serial.readAll();
+                    while (serial.waitForReadyRead(30))
+                        responseData += serial.readAll();
+
+                    qDebug("3 ,response data size = %d\n",responseData.size());
+                    qDebug("Serial transfer read data done.len = %d,timeOut setting = %d.\n",serial.size(),currentWaitTimeout);
+                    emit this->response(responseData,m_request_mode);
+
+
+                } else
+                {
+                    emit timeout(tr("Wait read response timeout %1")
+                                 .arg(QTime::currentTime().toString()),m_request_mode);
+                }
+
+            } else
+            {
+                emit timeout(tr("Wait write request timeout %1")
+                             .arg(QTime::currentTime().toString()),m_request_mode);
+            }
+        }else
+        {
+            if (serial.waitForReadyRead(currentWaitTimeout))
+            {
 
                 QByteArray responseData = serial.readAll();
-                while (serial.waitForReadyRead(20))
+                while (serial.waitForReadyRead(30))
                     responseData += serial.readAll();
 
-                qDebug("3 ,response data size = %d\n",responseData.size());
-                qDebug("Serial transfer read data done.len = %d,timeOut setting = %d.\n",serial.size(),currentWaitTimeout);
+                qDebug("thread ,response data size = %d\n",responseData.size());
+
                 emit this->response(responseData,m_request_mode);
 
 
-            } else {
-                emit timeout(tr("Wait read response timeout %1")
-                             .arg(QTime::currentTime().toString()),m_request_mode);
+            } else
+            {
+                emit timeout(tr("Wait read response timeout %1 time %2")
+                             .arg(currentWaitTimeout).arg(QTime::currentTime().toString()),m_request_mode);
             }
-
-        } else {
-            emit timeout(tr("Wait write request timeout %1")
-                         .arg(QTime::currentTime().toString()),m_request_mode);
         }
 
         m_mutex.lock();
@@ -186,9 +224,11 @@ void MasterThread::run()
         } else {
             currentPortNameChanged = false;
         }
-        currentWaitTimeout = m_waitTimeout;
-
+        currentWaitTimeout = m_waitTimeout;  
         m_mutex.unlock();
     }
+
+    qDebug("Thread quit.Serial %s close.\n",qPrintable(serial.portName()));
+    serial.close();
 
 }

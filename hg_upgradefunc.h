@@ -68,7 +68,10 @@ typedef enum {
 }UPGRADE_STATUS_E;
 
 
-#define TX_PKG_MAX_SIZE    (32768)   //32*1024Bytes
+#define TX_PKG_MAX_SIZE_32K    (32768)   //32*1024Bytes
+
+#define TX_PKG_MAX_SIZE_8K    (8192)   //8*1024 Bytes
+
 #define TX_BLK_MAX_SIZE    (1572864)  //1.5MBytes
 
 class HG_UpgradeFunc : public QObject
@@ -100,8 +103,8 @@ public:
     //UPGRADE_STATUS_E current_status(void);
 
     int  construct_frame(UPGRADE_CMD_TYPE_E cmd_type, unsigned char * buff, int len);
-    unsigned char m_tmpBuf[TX_PKG_MAX_SIZE + 32];
-    unsigned char m_sendBuf[TX_PKG_MAX_SIZE + 32];
+    unsigned char m_tmpBuf[TX_PKG_MAX_SIZE_32K + 32];
+    unsigned char m_sendBuf[TX_PKG_MAX_SIZE_32K + 32];
     
     int get_progress_pos();
     bool downProgramFile(char * data,int dateLen, unsigned int dwLoadAddr, unsigned int dwFlashAddr);

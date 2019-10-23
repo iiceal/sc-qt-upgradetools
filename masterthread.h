@@ -67,9 +67,11 @@ public:
     explicit MasterThread(QObject *parent = nullptr);
     ~MasterThread();
 
+    void serialClose();
+
 //    void transaction(QSerialPort *serialPort, int waitTimeout, char* data,qint32 len,qint32 mode);
     void transaction(const QString &portName, const qint32 bondRate,int waitTimeout, char* data,qint32 len, qint32 mode);
-    void recieve(const QString &portName, const qint32 bondRate,qint32 TimeOut);
+    void recieve(const QString &portName, const qint32 bondRate,qint32 TimeOut,qint32 mode);
 
 signals:
     void response(const QByteArray s,qint32 mode);

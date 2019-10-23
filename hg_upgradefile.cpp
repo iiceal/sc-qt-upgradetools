@@ -315,11 +315,11 @@ void HG_UpgradeFile::doLoadFlashFile(HG_UpgradeFile::BootMode mode)
 //                qDebug("**************download bl bk done.size %d bytes*************** \n",bbByteArray.size());
 //            }
 //        }
-//        break;
+
 /*****************************************************************************************************************/
+        break;
 
     case CompatibilityMode:
-
         qDebug("CompatibilityMode Download Flash File Progress\n\n");
         if(mbrByteArray.isEmpty())
         {

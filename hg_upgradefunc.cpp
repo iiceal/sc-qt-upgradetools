@@ -318,7 +318,7 @@ bool HG_UpgradeFunc::downLoadFlashFile(char * data,int dateLen, unsigned int dwL
 bool HG_UpgradeFunc::UpgradeProcess(char *data, int nRdSize, unsigned int dwLoadAddr, unsigned int dwFlashAddr)
 {
     qint32 tryCount = 0;
-    unsigned int dwReadRet = 0;
+    unsigned int dwReadRet = 0,TX_PKG_MAX_SIZE = 0;
 	int nFileSize;
 	UPGRADE_STATUS_E loop_state = UPGRADE_STATUS_E_START;
     int i, rdlen, dlen, last_dlen = 0, default_wait_timeout = 1000, upgrade_exe_timeout;
@@ -351,10 +351,10 @@ start_again:
         timeoutStatus = false;
         ctrlTracePrint(tr("Try to handshake with targe, try_count = %1\n").arg(tryCount));
         qDebug("Send handshake cmd to target.\n");
-        m_thread.transaction(portName,PortBondrate.toInt(),10,(char *)m_sendBuf,1,1);
+        m_thread.transaction(portName,PortBondrate.toInt(),default_wait_timeout,(char *)m_sendBuf,1,1);
 
         while((responseStatus == -1)&&(timeoutStatus == false))
-            hg_msleep(10);
+            hg_msleep(1);
 
         if(timeoutStatus == true){
             qDebug("receive ack timeoutStatus = %d \n",timeoutStatus);
@@ -384,13 +384,18 @@ start_again:
     left_size = nRdSize;
     tryCount = 0;
 
+    if(PortBondrate.toInt() < 921600){
+        TX_PKG_MAX_SIZE = TX_PKG_MAX_SIZE_8K;
+    }else {
+        TX_PKG_MAX_SIZE = TX_PKG_MAX_SIZE_32K;
+    }
     while(1) {
         qDebug("\n");
         emit sendProgreassPos((qint32) get_progress_pos());
 
         //only try 400 times, if failed return false.
         tryCount ++;
-        if(tryCount > 50){
+        if(tryCount > 500){
             qDebug("Send data %d times ,still failed.\n",tryCount);
             ctrlTracePrint(tr("Send data too many times still failed, try_count = %1\n").arg(tryCount));
             return false;
