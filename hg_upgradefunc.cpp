@@ -271,6 +271,12 @@ bool HG_UpgradeFunc::downLoadFlashFile(char * data,int dateLen, unsigned int dwL
                    .arg(dateLen).arg(dwLoadAddr,8,16).arg(dwFlashAddr,8,16));
 
     while(dateLen > 0) {
+        //flag_abort check loop1;
+        if(true == flag_abort)
+        {
+            qDebug("Down load flash check flag abort true. abort now !!!!\n\n");
+            return false;
+        }
         if(repeat_flag == 0){
             try_count = 0;
             if(dateLen > nLoadSize)
@@ -339,8 +345,15 @@ start_again:
 	reset_global_variable();
 	m_sendBuf[0] = UPGRADE_PROCESS_START_FLAG;
     while(1) {
+
+        //flag abort check loop2.
+        if(flag_abort == true)
+        {
+            qDebug("Connect borad abort.\n");
+            return false;
+        }
         tryCount ++;
-        if(tryCount > 50)
+        if(tryCount > 500)
         {
             qDebug("Try %d times to connect borad,no borad ack recv.\n",tryCount);
             ctrlTracePrint(tr("Connect borad failed.try_count = %1\n").arg(tryCount));
@@ -349,7 +362,7 @@ start_again:
         }
         responseStatus = -1;
         timeoutStatus = false;
-        ctrlTracePrint(tr("Try to handshake with targe, try_count = %1\n").arg(tryCount));
+        ctrlTracePrint(tr("Try to handshake with targe, try_count = %1").arg(tryCount));
         qDebug("Send handshake cmd to target.\n");
         m_thread.transaction(portName,PortBondrate.toInt(),default_wait_timeout,(char *)m_sendBuf,1,1);
 
@@ -374,7 +387,6 @@ start_again:
         qDebug("state: %d==>%d\r\n", loop_state, m_upgrade_status);
         m_upgrade_status = UPGRADE_STATUS_E_GOT_VERSION;
         loop_state = m_upgrade_status;
-        qDebug("Handshake to target Done.\n");
         ctrlTracePrint("Handshake to target Done.\n");
         break;
     }
@@ -390,14 +402,20 @@ start_again:
         TX_PKG_MAX_SIZE = TX_PKG_MAX_SIZE_32K;
     }
     while(1) {
-        qDebug("\n");
+
+        //flag abort check loop3.
+        if(flag_abort == true)
+        {
+            qDebug("Translate abort.\n");
+            return false;
+        }
         emit sendProgreassPos((qint32) get_progress_pos());
 
         //only try 400 times, if failed return false.
         tryCount ++;
-        if(tryCount > 500){
+        if(tryCount > 50){
             qDebug("Send data %d times ,still failed.\n",tryCount);
-            ctrlTracePrint(tr("Send data too many times still failed, try_count = %1\n").arg(tryCount));
+            ctrlTracePrint(tr("Send data too many times still failed, try_count = %1").arg(tryCount));
             return false;
         }
 
@@ -420,7 +438,6 @@ start_again:
             {
                 if(m_send_complete_flag == 1)
                     m_send_complete_flag = 0;
-				
                 m_send_total_byte -= last_dlen;
                 buff_r -= last_dlen;  // buffer指针前移
                 left_size += last_dlen;	// 剩余字节数更新，加上上次未成功发送的
@@ -472,14 +489,12 @@ start_again:
         responseStatus = -1;
         timeoutStatus = false;
 
-
-        ctrlTracePrint(tr("Send data to targe: size: %1\n").arg(dlen));
+        ctrlTracePrint(tr("Send data to targe: size: %1").arg(dlen));
         serialBuff.clear();
         if(UPGRADE_STATUS_E_END_DATA != loop_state)
                 m_thread.transaction(portName,PortBondrate.toInt(),default_wait_timeout,(char *)m_sendBuf,dlen,0);
         else
                 m_thread.transaction(portName,PortBondrate.toInt(),upgrade_exe_timeout,(char *)m_sendBuf,dlen,0);
-
 
         while((responseStatus == -1)&& (timeoutStatus == false))
             hg_msleep(10);
@@ -496,8 +511,8 @@ start_again:
 
         // 解析结果，修改状态
         state_parse(parse_ret);
-        ctrlTracePrint(tr("process machine state: %1 ==> %2 \n").arg(loop_state).arg(m_upgrade_status));
-        qDebug("state: %d==>%d\r\n", loop_state, m_upgrade_status);
+        ctrlTracePrint(tr("process machine state: %1 ==> %2 ").arg(loop_state).arg(m_upgrade_status));
+        qDebug("state: %d==>%d\r\n\n", loop_state, m_upgrade_status);
         loop_state = m_upgrade_status;
         if(UPGRADE_STATUS_E_START == loop_state){
             goto start_again;

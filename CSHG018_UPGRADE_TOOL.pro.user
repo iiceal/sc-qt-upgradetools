@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 4.8.0, 2019-10-08T15:39:55. -->
+<!-- Written by QtCreator 4.8.0, 2019-10-21T18:01:10. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -127,7 +127,7 @@
     <value type="bool" key="Qt4ProjectManager.Qt4BuildConfiguration.UseShadowBuild">true</value>
    </valuemap>
    <valuemap type="QVariantMap" key="ProjectExplorer.Target.BuildConfiguration.1">
-    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">E:/debug/qt/build-CSHG018_UPGRADE_TOOL-Desktop_Qt_5_12_4_MinGW_64_bit_static-Release</value>
+    <value type="QString" key="ProjectExplorer.BuildConfiguration.BuildDirectory">E:/4-debug/qt/build-CSHG018_UPGRADE_TOOL-Desktop_Qt_5_12_4_MinGW_64_bit_static-Release</value>
     <valuemap type="QVariantMap" key="ProjectExplorer.BuildConfiguration.BuildStepList.0">
      <valuemap type="QVariantMap" key="ProjectExplorer.BuildStepList.Step.0">
       <value type="bool" key="ProjectExplorer.BuildStep.Enabled">true</value>
@@ -308,7 +308,7 @@
     <value type="bool" key="RunConfiguration.UseQmlDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseQmlDebuggerAuto">true</value>
     <value type="QString" key="RunConfiguration.WorkingDirectory"></value>
-    <value type="QString" key="RunConfiguration.WorkingDirectory.default">E:/debug/qt/build-CSHG018_UPGRADE_TOOL-Desktop_Qt_5_12_4_MinGW_64_bit_static-Release</value>
+    <value type="QString" key="RunConfiguration.WorkingDirectory.default">E:/4-debug/qt/build-CSHG018_UPGRADE_TOOL-Desktop_Qt_5_12_4_MinGW_64_bit_static-Release</value>
    </valuemap>
    <value type="int" key="ProjectExplorer.Target.RunConfigurationCount">1</value>
   </valuemap>

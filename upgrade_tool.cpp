@@ -157,51 +157,86 @@ qint32 upgrade_tool::get_data_from_sellect_file(QString *f_path)
     return 0;
 }
 
+qint32 upgrade_tool::flash_hdr_create(FF_HDR_T *hdr_data,quint32 plain_data_size)
+{
+    hdr_data->magic = 0x77667766;
+    hdr_data->version = 0x10000;
+    hdr_data->flags = 0x82; //verify disable,type 2;
+    hdr_data->load_addr = 0x20000000;
+    hdr_data->exec_addr = 0x20000000;
+    hdr_data->flash_addr = 0x200;
+    hdr_data->size = plain_data_size;
+    hdr_data->crc16 = crc16((quint8 *)hdr_data, sizeof(FF_HDR_T) - 2);
+
+    qDebug("Create Header:magic = 0x%8x, version = 0x%8x, flag = 0x%2x\nload_addr = 0x%8x, exec_addr = 0x%8x,flash_addr = 0x%8x,size = 0x%8x(%d KB)\n\n",
+           hdr_data->magic,hdr_data->version,hdr_data->flags,hdr_data->load_addr,
+           hdr_data->exec_addr,hdr_data->flash_addr,hdr_data->size,hdr_data->size/1024);
+}
+
 qint32 upgrade_tool::bb_flash_file_create()
 {
 // 1. 256 bytes align;
 // 2. size of flash file to burn is header size + bb bin size + padding size
     quint32 plan_size; //the size of add padding to align 256b
-    quint32 hdr_size;
+    qint32 hdr_size;
 
     quint32 ff_crc32;
+    FF_SUF_T suf_data;
+    FF_HDR_T* hdr_data;
+    quint8 bl2fw_hdr_dbuf[BL2FW_HDR_SIZE];
 
     if(bbBinfile.isEmpty())
+        return -1;
 
     hdr_size = sizeof(FF_HDR_T);
+
     plan_size = bbBinfile.size();
     if(bbBinfile.size() % FF_PAGE_ALIGN_SIZE > 0)
     {
         plan_size += FF_PAGE_ALIGN_SIZE;
         plan_size &= ~(FF_PAGE_ALIGN_SIZE -1);
     }
+    qDebug("CreateBBflashFile: origin bin size = 0x%x, after padding size = 0x%x\n\n",bbBinfile.size(),plan_size);
 
-//    hdrFile.data(0) = plan_size ;   //hdr->size stored the bb plan size(bin size + padding size)
-    hdrFile.resize(256);
-    memcpy(hdrFile.data(),&plan_size,sizeof(quint32));
+    memset(bl2fw_hdr_dbuf,0xff,BL2FW_HDR_SIZE);
 
+    hdr_data = (FF_HDR_T*) bl2fw_hdr_dbuf;
+    hdr_data->magic = 0x77667766;
+    hdr_data->version = 0x10000;
+    hdr_data->flags = 0x82; //verify disable,type 2;
+    hdr_data->load_addr = 0x20000000;
+    hdr_data->exec_addr = 0x20000000;
+    hdr_data->flash_addr = BL2FW_HDR_SIZE;
+    hdr_data->size = plan_size;
+    hdr_data->crc16 = crc16((quint8 *)hdr_data, sizeof(FF_HDR_T) - 2);
 
-    bbBurnfile.append(hdrFile);
+    qDebug("Create Header:magic = 0x%8x, version = 0x%8x, flag = 0x%2x\nload_addr = 0x%8x, exec_addr = 0x%8x,flash_addr = 0x%8x,size = 0x%8x(%d KB)\nhdr_size = %d\n\n",
+           hdr_data->magic,hdr_data->version,hdr_data->flags,hdr_data->load_addr,
+           hdr_data->exec_addr,hdr_data->flash_addr,hdr_data->size,hdr_data->size/1024,sizeof(FF_HDR_T));
+
+    bbBurnfile.append((char *)bl2fw_hdr_dbuf,BL2FW_HDR_SIZE);
     bbBurnfile.append(bbBinfile);
-    bbBurnfile.resize(256 + plan_size);
+    bbBurnfile.resize(BL2FW_HDR_SIZE + plan_size);
 
-//    memset(ff_burn->data,0xff,plan_size + hdr_size);
-//    memcpy(ff_burn->data,hdr,hdr_size);
-//    memcpy(ff_burn->data + hdr_size,bbBinFile->data,bbBinFile->size);
+    //crc for bin file
+    ff_crc32 = CRC_32(0, (quint8 *)bbBurnfile.data() + BL2FW_HDR_SIZE,(plan_size - sizeof(FF_SUF_T)));
 
-    ff_crc32 = CRC_32(0,(unsigned char*)bbBurnfile.data() + hdr_size,(plan_size - sizeof(quint32)));
+    suf_data.chipid = 0;
+    suf_data.crc32 = CRC_32(ff_crc32,(quint8 *)&suf_data, 4);
+    qDebug("1 bbBurnfile size = %d FF_SUR_T = %d.\n",bbBurnfile.size(),sizeof(FF_SUF_T));
+    /* shit : replace 会导致 bbBurnfile size 少8；insert 会导致 bbBurnfile size 加8*/
+//    bbBurnfile.replace(BL2FW_HDR_SIZE + plan_size - sizeof(FF_SUF_T), sizeof(FF_SUF_T), (char *)&suf_data);
+//    bbBurnfile.insert(BL2FW_HDR_SIZE + plan_size - sizeof(FF_SUF_T), (char *)&suf_data, sizeof(FF_SUF_T));
+    memcpy(bbBurnfile.data() +  BL2FW_HDR_SIZE + plan_size - sizeof(FF_SUF_T), (quint8 *)&suf_data,sizeof(FF_SUF_T));
+    qDebug("size 1 = %d,size 2 = %d , size 3 = %d \n",
+           BL2FW_HDR_SIZE + plan_size,BL2FW_HDR_SIZE + plan_size-sizeof(FF_SUF_T),bbBurnfile.size());
 
-//    ff_burn->size = plan_size + hdr_size;
-//        memcpy(ff_burn->data + (ff_burn->size - sizeof(ff_crc32)),&ff_crc32,sizeof(ff_crc32));
+    qDebug("hdrf size = %d bb_bin_size = %d, plan_size = %d. bbBurnfile size = %d, bb_ff_crc = 0x%8x, sizeof quint32 = %d suf_crc32 = 0x%x suf_size = %d\n",
+          BL2FW_HDR_SIZE,bbBinfile.size(),plan_size ,bbBurnfile.size(),ff_crc32, sizeof(quint32),suf_data.crc32,sizeof(FF_SUF_T));
 
-//    memcpy((bbBurnfile.data()+ bbBurnfile.size() - sizeof (quint32)),&ff_crc32,sizeof(quint32));
-    bbBurnfile.replace(bbBurnfile.size() - sizeof(quint32) - 1, sizeof(quint32), (char *)&ff_crc32);
-
-    qDebug("hdr_size = %d, bb_bin_size = %d, plan_size = %d. bbBurnfile size = %d, bb_ff_crc = 0x%8d, sizeof quint32 = %d\n",
-          hdrFile.size(),bbBinfile.size(),plan_size ,bbBurnfile.size(),ff_crc32, sizeof(quint32));
+    qDebug("ff_crc32 = 0x%x, dsuf_crc32 = 0x%x  \n\n",ff_crc32,suf_data.crc32);
     qDebug("Create success!\n");
     return 0;
-
 }
 
 qint32 upgrade_tool::bb_flash_file_burn()
@@ -215,8 +250,12 @@ qint32 upgrade_tool::bb_flash_file_burn()
         return -1;
     }
     upgrade_handler->currentUpgradeProcess(HG_UpgradeFile::CompatibilityMode,HG_UpgradeFile::BB_File);
-    if(false == upgrade_handler->downLoadFlashFile(bbBurnfile.data(),bbBurnfile.size(),
-                                                   FlashFileLoadAddr,SPIFLASH_D_BASE + flashaddr))
+
+    //bb flashfile sram buff address = 0x100000; Flash stored address 0xc0000;
+    if(false == upgrade_handler->downLoadFlashFile(bbBurnfile.data(),
+                                                   bbBurnfile.size(),
+                                                   0x100000,                        //sram buff address
+                                                   SPIFLASH_D_BASE + 0xc0000))      //flash stored address
     {
         qDebug("burn failed!\n");
         return -1;
@@ -245,7 +284,7 @@ qint32 upgrade_tool::bb_burn_process()
 //    ui->checkBox->setEnabled(false);
 
     bb_flash_file_create();
-    qDebug("create burn file done.burn start.");
+    qDebug("create burn file done.burn start...");
     ret = bb_flash_file_burn();
     if(ret != 0)
     {
@@ -263,7 +302,7 @@ qint32 upgrade_tool::bb_burn_process()
 //    ui->FLASH_BURN_ADDR->setEnabled(true);
 //    ui->checkBox->setEnabled(true);
 
-    qDebug("flash file burn done!\n\n" );
+    qDebug("flash file burn done!!!\n\n" );
     return 0;
 }
 
@@ -329,6 +368,8 @@ qint32 upgrade_tool::sys_burn_process()
     ui->SYS_BURN_BL_TOOL->setEnabled(false);
     ui->SYS_BURN_BB_TOOL->setEnabled(false);
     ui->SYS_BURN_START->setEnabled(false);
+
+    upgrade_handler->upgradeAux->flag_abort = false;
 
     upgrade_handler->mbrByteArray = sys_burn_get_data_from_sellect_file(ui->SYS_BURN_MBR_DIR->text());
     if(upgrade_handler->mbrByteArray.isEmpty())
@@ -437,6 +478,7 @@ void upgrade_tool::on_COM_SET_OPEN_clicked()
         upgrade_handler->upgradeAux->m_thread.serialClose();
         ui->COM_SET_OPEN->setText("Open");
         serialStatusFlag = false;  //flag means serial opened;
+        upgrade_handler->upgradeAux->flag_abort = true;
     }
 }
 
@@ -458,6 +500,7 @@ void upgrade_tool::on_BBFW_BURN_START_clicked()
     }
     filePath = ui->BBFW_BURN_DIR->text();
     get_data_from_sellect_file(&filePath);
+    upgrade_handler->upgradeAux->flag_abort = false;
     ret = bb_burn_process();
 
     return;
@@ -493,4 +536,14 @@ void upgrade_tool::on_SYS_BURN_START_clicked()
         return;
     }
     sys_burn_process();
+}
+
+void upgrade_tool::on_SYS_BURN_ABORT_clicked()
+{
+    upgrade_handler->upgradeAux->flag_abort = true;
+}
+
+void upgrade_tool::on_BBFW_BURN_ABORT_clicked()
+{
+     upgrade_handler->upgradeAux->flag_abort = true;
 }

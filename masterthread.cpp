@@ -75,9 +75,10 @@ void MasterThread::serialClose()
     m_mutex.lock();
     m_quit = true;
     m_cond.wakeOne();
-//    terminate();
-//    quit();
     m_mutex.unlock();
+    terminate();
+//    quit();
+
     qDebug("ForceClose Done.\n");
 }
 //void MasterThread::transaction(QSerialPort *serialPort, int waitTimeout, char* data,qint32 len, qint32 mode)

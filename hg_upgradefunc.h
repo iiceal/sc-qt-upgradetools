@@ -86,6 +86,8 @@ public:
     QString PortBondrate;
     QByteArray serialBuff;
     MasterThread m_thread;
+
+    volatile bool flag_abort; // abort flag for abort buttun clicked.
     void serial_config(QString name,QString bondrate);
 
     void reset_global_variable(void);

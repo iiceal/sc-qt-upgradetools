@@ -255,10 +255,23 @@
        <enum>Qt::RightToLeft</enum>
       </property>
       <property name="text">
-       <string>0x300000</string>
+       <string>0xC0000</string>
       </property>
       <property name="alignment">
        <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="BBFW_BURN_ABORT">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>360</y>
+        <width>80</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Abort</string>
       </property>
      </widget>
     </widget>
@@ -476,6 +489,19 @@
       </property>
       <property name="text">
        <string>...</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="SYS_BURN_ABORT">
+      <property name="geometry">
+       <rect>
+        <x>220</x>
+        <y>360</y>
+        <width>80</width>
+        <height>20</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Abort</string>
       </property>
      </widget>
     </widget>

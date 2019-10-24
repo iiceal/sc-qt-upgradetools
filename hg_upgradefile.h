@@ -30,7 +30,7 @@ struct fls_fmt_data {
 
 #define SPIFLASH_D_BASE     (0x10000000)
 #define ProgramFileLoadAddr  (0x100000)
-#define FlashFileLoadAddr    (0x140000)
+#define FlashFileLoadAddr    (0x140000) //fw sram buff addr
 
 /*flags*/
 #define		FLS_FLAGS_VALID		(1 << 0)

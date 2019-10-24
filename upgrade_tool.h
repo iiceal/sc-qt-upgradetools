@@ -10,6 +10,9 @@
 #define FF_PAGE_ALIGN_SIZE  256
 #define FF_PLAIN_DATA_SIZE  (3*1024*1024)  //plain burn data buff max size set 3MB
 
+
+#define	BL2FW_HDR_SIZE	512
+
 namespace Ui {
 class upgrade_tool;
 }
@@ -24,10 +27,23 @@ public:
 
     /*hdr size 256 bytes*/
 typedef struct ff_hdr{
-        quint32      size;
-        quint32  	crc32;
-        quint32  reserved[62];
+        quint32   magic;
+        quint32   version;
+
+        quint32   flash_addr;
+        quint32   size;
+        quint32   load_addr;
+        quint32   exec_addr;
+
+        quint8    data_en_key[256];
+        quint16   flags;
+        quint16   crc16;
 }FF_HDR_T;
+
+typedef struct bl2fw_plain_data_suf {
+    quint32     chipid;
+    quint32     crc32;
+}FF_SUF_T;
 
     /*hdr size 256 bytes*/
 typedef struct ff_plain{
@@ -48,6 +64,9 @@ typedef struct ff_plain{
 
     quint32 get_path_from_sellect_file(QLineEdit *lineEdit);
     qint32 get_data_from_sellect_file(QString *f_path);
+
+    qint32 flash_hdr_create(FF_HDR_T *hdr_data,quint32 plain_data_size);
+
     /*return added hdr flash file*/
     qint32 bb_flash_file_create();
     qint32 bb_flash_file_burn();
@@ -86,12 +105,17 @@ private slots:
 
     void on_SYS_BURN_START_clicked();
 
+    void on_SYS_BURN_ABORT_clicked();
+
+    void on_BBFW_BURN_ABORT_clicked();
+
 private:
     Ui::upgrade_tool *ui;
     HG_UpgradeFile *upgrade_handler;
     QErrorMessage * errDlg_file;
 
-    QByteArray hdrFile;
+    QByteArray hdrFile; //head data;
+    QByteArray sufFile; //suffix data;
     QByteArray bbBinfile;
     QByteArray bbBurnfile;
 };

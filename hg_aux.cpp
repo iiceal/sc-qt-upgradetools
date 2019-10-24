@@ -20,8 +20,7 @@ void hg_msleep(int msec)
 
 static unsigned int crc32_no_comp(unsigned int crc, unsigned char const *p, int len)
 {
-    while (len--)
-    {
+    while (len--) {
         crc ^= *p++;
         crc = (crc >> 4) ^ crc32table_le[crc & 15];
         crc = (crc >> 4) ^ crc32table_le[crc & 15];
@@ -58,3 +57,4 @@ unsigned int CRC_32(unsigned int crc, unsigned char * buff, int len)
 {
     return crc32_no_comp(crc ^ 0xffffffffL, buff, len) ^ 0xffffffffL;
 }
+
